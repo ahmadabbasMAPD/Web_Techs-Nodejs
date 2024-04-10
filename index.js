@@ -24,22 +24,25 @@ db.once('open', ()=>{
 });
 
 // Define the patient schema
+// Define the patient schema
 const patientSchema = new mongoose.Schema({
- name: String,
- age: String,
- address: String,
- gender: String,
- phno: String,
- tests: [
-    {
-      bloodPressure: String,
-      heartRate: String,
-      respiratoryRate: String,
-      oxygenSaturation: String,
-      bodyTemperature: String,
-    },
- ],
-});
+  name: String,
+  age: String,
+  address: String,
+  gender: String,
+  phno: String,
+  tests: [
+     {
+       date: Date, // Add this line to include the date of the test
+       bloodPressure: String,
+       heartRate: String,
+       respiratoryRate: String,
+       oxygenSaturation: String,
+       bodyTemperature: String,
+     },
+  ],
+ });
+ 
 
 // Create the patient model
 let PatientsModel = mongoose.model('Patients', patientSchema);
@@ -60,7 +63,7 @@ server.listen(PORT, HOST, function () {
 server.use(restify.plugins.fullResponse());
 server.use(restify.plugins.bodyParser());
 
-// Create a new patient
+
 // Create a new patient
 server.post('/Patients', function (req, res, next) {
   // Log request details
@@ -83,10 +86,18 @@ server.post('/Patients', function (req, res, next) {
   if (req.body.phno === undefined) {
      return next(new errors.BadRequestError('Phone Number Must Be Provided'));
   }
+  if (req.body.tests === undefined) {
+      return next(new errors.BadRequestError('Tests Must Be Provided'));
+    }
+  // if (req.body.date.length === 0) {
+  //     return next(new errors.BadRequestError('Date Must Be Provided'));
+  //   }
+
  
   // Create a new patient instance
   let newPatient = new PatientsModel({
-     name: req.body.name,
+     date: req.body.date, // Include the date of the test from the request body
+     name: req.body.name, // Include the name from the request body
      address: req.body.address,
      age: req.body.age,
      gender: req.body.gender,
@@ -202,7 +213,7 @@ server.post('/Patients/:id/tests', function (req, res, next) {
  console.log('POST /Patients/:id/tests body=>' + JSON.stringify(req.body));
 
  // Validate the presence of all test data fields
- if (!req.body.bloodPressure || !req.body.heartRate || !req.body.respiratoryRate || !req.body.oxygenSaturation || !req.body.bodyTemperature) {
+ if (!req.body.bloodPressure || !req.body.heartRate || !req.body.respiratoryRate || !req.body.oxygenSaturation || !req.body.bodyTemperature || !req.body.date) {
     return next(new errors.BadRequestError('All test data fields are required'));
  }
 
@@ -215,6 +226,7 @@ server.post('/Patients/:id/tests', function (req, res, next) {
 
       // Create a new test object
       const newTest = {
+        date: new Date(req.body.date), 
         bloodPressure: req.body.bloodPressure,
         heartRate: req.body.heartRate,
         respiratoryRate: req.body.respiratoryRate,
@@ -275,56 +287,52 @@ server.post('/Patients/:id/tests', function (req, res, next) {
     });
 });
 
-// Retrieve all patients in critical condition
 server.get('/Patients/critical', function (req, res, next) {
- console.log('GET /Patients/critical');
-
- // Retrieve all patients from the database
- PatientsModel.find({})
-    .then((patients) => {
-      // Check if any patients are in critical condition based on test results
-      const criticalPatients = patients.filter((patient) => {
-        if (patient.tests.length > 0) {
-          const latestTest = patient.tests[patient.tests.length - 1];
-          const criticalConditions = {
-            bloodPressure: { min: 70, max: 120 },
-            heartRate: { min: 40, max: 100 },
-            respiratoryRate: { min: 12, max: 20 },
-            oxygenSaturation: { min: 95, max: 100 },
-            bodyTemperature: { min: 97, max: 99 },
-          };
-
-          // Check for critical condition based on the latest test results
-          return (
-            latestTest.bloodPressure < criticalConditions.bloodPressure.min ||
-            latestTest.bloodPressure > criticalConditions.bloodPressure.max ||
-            latestTest.heartRate < criticalConditions.heartRate.min ||
-            latestTest.heartRate > criticalConditions.heartRate.max ||
-            latestTest.respiratoryRate < criticalConditions.respiratoryRate.min ||
-            latestTest.respiratoryRate > criticalConditions.respiratoryRate.max ||
-            latestTest.oxygenSaturation < criticalConditions.oxygenSaturation.min ||
-            latestTest.oxygenSaturation > criticalConditions.oxygenSaturation.max ||
-            latestTest.bodyTemperature < criticalConditions.bodyTemperature.min ||
-            latestTest.bodyTemperature > criticalConditions.bodyTemperature.max
-          );
-        } else {
-          return false;
-        }
-      });
-
-      // Return critical patients if any are found
-      if (criticalPatients.length > 0) {
-        res.send(criticalPatients);
-      } else {
-        res.send(404, 'No patients in critical condition');
-      }
-      return next();
-    })
-    .catch((error) => {
-      console.log('Error: ' + error);
-      return next(new errors.InternalServerError('Error retrieving critical patients'));
-    });
-});
+  console.log('GET /Patients/critical');
+ 
+  // Retrieve all patients from the database
+  PatientsModel.find({})
+     .then((patients) => {
+       const criticalPatients = patients.filter((patient) => {
+         if (patient.tests.length > 0) {
+           const latestTest = patient.tests[patient.tests.length - 1];
+           const criticalConditions = {
+             bloodPressure: { min: 70, max: 120 },
+             heartRate: { min: 40, max: 100 },
+             respiratoryRate: { min: 12, max: 20 },
+             oxygenSaturation: { min: 95, max: 100 },
+             bodyTemperature: { min: 97, max: 99 },
+           };
+ 
+           return (
+             latestTest.bloodPressure < criticalConditions.bloodPressure.min ||
+             latestTest.bloodPressure > criticalConditions.bloodPressure.max ||
+             latestTest.heartRate < criticalConditions.heartRate.min ||
+             latestTest.heartRate > criticalConditions.heartRate.max ||
+             latestTest.respiratoryRate < criticalConditions.respiratoryRate.min ||
+             latestTest.respiratoryRate > criticalConditions.respiratoryRate.max ||
+             latestTest.oxygenSaturation < criticalConditions.oxygenSaturation.min ||
+             latestTest.oxygenSaturation > criticalConditions.oxygenSaturation.max ||
+             latestTest.bodyTemperature < criticalConditions.bodyTemperature.min ||
+             latestTest.bodyTemperature > criticalConditions.bodyTemperature.max
+           );
+         }
+         return false;
+       });
+ 
+       if (criticalPatients.length > 0) {
+         res.send(criticalPatients);
+       } else {
+         res.send(404, 'No patients in critical condition');
+       }
+       return next();
+     })
+     .catch((error) => {
+       console.error('Error retrieving critical patients:', error);
+       return next(new errors.InternalServerError('Error retrieving critical patients'));
+     });
+ });
+ 
 
 // Update patient information
 server.put('/Patients/:id', function (req, res, next) {

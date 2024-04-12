@@ -207,85 +207,86 @@ server.del('/Patients', function (req, res, next) {
 });
 
 // Add tests for a patient
+// Add tests for a patient
 server.post('/Patients/:id/tests', function (req, res, next) {
- // Log request details
- console.log('POST /Patients/:id/tests params=>' + JSON.stringify(req.params));
- console.log('POST /Patients/:id/tests body=>' + JSON.stringify(req.body));
-
- // Validate the presence of all test data fields
- if (!req.body.bloodPressure || !req.body.heartRate || !req.body.respiratoryRate || !req.body.oxygenSaturation || !req.body.bodyTemperature || !req.body.date) {
-    return next(new errors.BadRequestError('All test data fields are required'));
- }
-
- // Find the patient by ID
- PatientsModel.findById(req.params.id)
-    .then((patient) => {
-      if (!patient) {
-        return next(new errors.NotFoundError('Patient not found'));
-      }
-
-      // Create a new test object
-      const newTest = {
-        date: new Date(req.body.date), 
-        bloodPressure: req.body.bloodPressure,
-        heartRate: req.body.heartRate,
-        respiratoryRate: req.body.respiratoryRate,
-        oxygenSaturation: req.body.oxygenSaturation,
-        bodyTemperature: req.body.bodyTemperature,
-      };
-
-      // Define critical condition thresholds
-      const criticalConditions = {
-        bloodPressure: { min: 70, max: 120 },
-        heartRate: { min: 40, max: 100 },
-        respiratoryRate: { min: 12, max: 20 },
-        oxygenSaturation: { min: 95, max: 100 },
-        bodyTemperature: { min: 97, max: 99 },
-      };
-
-      let isCritical = false;
-
-      // Check if the test results indicate critical conditions
-      if (
-        newTest.bloodPressure < criticalConditions.bloodPressure.min ||
-        newTest.bloodPressure > criticalConditions.bloodPressure.max ||
-        newTest.heartRate < criticalConditions.heartRate.min ||
-        newTest.heartRate > criticalConditions.heartRate.max ||
-        newTest.respiratoryRate < criticalConditions.respiratoryRate.min ||
-        newTest.respiratoryRate > criticalConditions.respiratoryRate.max ||
-        newTest.oxygenSaturation < criticalConditions.oxygenSaturation.min ||
-        newTest.oxygenSaturation < criticalConditions.oxygenSaturation.min ||
-        newTest.oxygenSaturation > criticalConditions.oxygenSaturation.max ||
-        newTest.bodyTemperature < criticalConditions.bodyTemperature.min ||
-        newTest.bodyTemperature > criticalConditions.bodyTemperature.max
-      ) {
-        isCritical = true;
-      }
-
-      // Add the new test to the patient's test array
-      patient.tests.push(newTest);
-
-      // Save the updated patient information
-      return patient.save();
-    })
-    .then((updatedPatient) => {
-      // Send appropriate response based on critical condition
-      if (isCritical) {
-        console.log('Patient is in critical condition:', updatedPatient);
-        res.send(200, { criticalConditionData: newTest, patient: updatedPatient });
-      } else {
-        console.log('Added tests for patient: ' + updatedPatient);
-        res.send(200, updatedPatient);
-      }
-      return next();
-    })
-    .catch((error) => {
-      console.error('Error adding tests:', error);
-      // Ensure a response is sent back to the client in case of an error
-      res.send(500, { error: 'Failed to add tests', message: error.message });
-      return next();
-    });
-});
+  // Log request details
+  console.log('POST /Patients/:id/tests params=>' + JSON.stringify(req.params));
+  console.log('POST /Patients/:id/tests body=>' + JSON.stringify(req.body));
+ 
+  // Validate the presence of all test data fields
+  if (!req.body.bloodPressure || !req.body.heartRate || !req.body.respiratoryRate || !req.body.oxygenSaturation || !req.body.bodyTemperature || !req.body.date) {
+     return next(new errors.BadRequestError('All test data fields are required'));
+  }
+ 
+  // Find the patient by ID
+  PatientsModel.findById(req.params.id)
+     .then((patient) => {
+       if (!patient) {
+         return next(new errors.NotFoundError('Patient not found'));
+       }
+ 
+       // Create a new test object
+       const newTest = {
+         date: new Date(req.body.date), 
+         bloodPressure: req.body.bloodPressure,
+         heartRate: req.body.heartRate,
+         respiratoryRate: req.body.respiratoryRate,
+         oxygenSaturation: req.body.oxygenSaturation,
+         bodyTemperature: req.body.bodyTemperature,
+       };
+ 
+       // Define critical condition thresholds
+       const criticalConditions = {
+         bloodPressure: { min: 70, max: 120 },
+         heartRate: { min: 40, max: 100 },
+         respiratoryRate: { min: 12, max: 20 },
+         oxygenSaturation: { min: 95, max: 100 },
+         bodyTemperature: { min: 97, max: 99 },
+       };
+ 
+       let isCritical = false; // Declare isCritical here
+ 
+       // Check if the test results indicate critical conditions
+       if (
+         newTest.bloodPressure < criticalConditions.bloodPressure.min ||
+         newTest.bloodPressure > criticalConditions.bloodPressure.max ||
+         newTest.heartRate < criticalConditions.heartRate.min ||
+         newTest.heartRate > criticalConditions.heartRate.max ||
+         newTest.respiratoryRate < criticalConditions.respiratoryRate.min ||
+         newTest.respiratoryRate > criticalConditions.respiratoryRate.max ||
+         newTest.oxygenSaturation < criticalConditions.oxygenSaturation.min ||
+         newTest.oxygenSaturation < criticalConditions.oxygenSaturation.min ||
+         newTest.oxygenSaturation > criticalConditions.oxygenSaturation.max ||
+         newTest.bodyTemperature < criticalConditions.bodyTemperature.min ||
+         newTest.bodyTemperature > criticalConditions.bodyTemperature.max
+       ) {
+         isCritical = true;
+       }
+ 
+       // Add the new test to the patient's test array
+       patient.tests.push(newTest);
+ 
+       // Save the updated patient information
+       return patient.save();
+     })
+     .then((updatedPatient) => {
+       // Send appropriate response based on critical condition
+      //  if (isCritical) { // Now isCritical is accessible here
+      //    console.log('Patient is in critical condition:', updatedPatient);
+      //    res.send(200, { criticalConditionData: newTest, patient: updatedPatient });
+      //  } else {
+         console.log('Added tests for patient: ' + updatedPatient);
+         res.send(200, updatedPatient);
+      //  }
+       return next();
+     })
+     .catch((error) => {
+       console.error('Error adding tests:', error);
+       // Ensure a response is sent back to the client in case of an error
+       res.send(500, { error: 'Failed to add tests', message: error.message });
+       return next();
+     });
+ });
 
 server.get('/Patients/critical', function (req, res, next) {
   console.log('GET /Patients/critical');
